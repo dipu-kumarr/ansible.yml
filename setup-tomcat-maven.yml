@@ -1,1 +1,29 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Ensure JAVA_HOME is set
+      lineinfile:
+        path: /etc/profile.d/java.sh
+        create: yes
+        line: 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
+        state: present
+        mode: '0755'
 
+    - name: Ensure the environment is loaded in Tomcat service
+      lineinfile:
+        path: /etc/systemd/system/tomcat.service
+        regexp: '^Environment='
+        line: 'Environment=JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
+        state: present
+      notify: Reload systemd  # Notify the handler to reload systemd
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+      when: ansible_service_mgr == "systemd"  # Ensure systemd is used
+
+    - name: Start Tomcat service
+      systemd:
+        name: tomcat
+        state: started
