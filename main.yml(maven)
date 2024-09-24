@@ -1,1 +1,39 @@
+---
+# roles/maven/tasks/main.yml
 
+- name: Install prerequisites
+  apt:
+    name:
+      - software-properties-common
+    state: present
+    update_cache: yes
+
+- name: Check if Java is installed
+  command: java -version
+  register: java_version
+  ignore_errors: yes
+
+- name: Install Java if not present
+  apt:
+    name: openjdk-17-jdk
+    state: present
+    update_cache: yes
+  when: java_version.rc != 0  # Only install if java is not found
+
+- name: Check if Maven is installed
+  command: mvn -version
+  register: maven_version
+  ignore_errors: yes
+
+- name: Download Maven if not present
+  get_url:
+    url: https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz
+    dest: /tmp/apache-maven-3.9.9-bin.tar.gz
+  when: maven_version.rc != 0  # Only download if maven is not found
+
+- name: Extract Maven
+  unarchive:
+    src: /tmp/apache-maven-3.9.9-bin.tar.gz
+    dest: /opt/
+    remote_src: yes
+  when: maven_version.rc != 0  # Only extract if maven is not found
